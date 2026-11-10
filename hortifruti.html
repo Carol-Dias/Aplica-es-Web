@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo Hortifruti</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { display: flex; justify-content: center; min-height: 100vh; background: #f1f6ee; margin: 0; padding: 30px 10px; }
+    .tela { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,.1); }
+    h2 { margin: 0 0 20px; color: #2e7d32; text-align: center; }
+    .container { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: center; }
+    select { width: 170px; height: 200px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px 16px; font-size: 15px; font-weight: bold; color: #fff; background: #2e7d32; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1b5e20; }
+    button.sec { background: #607d8b; }
+    button.sec:hover { background: #455a64; }
+    .painel-direito { display: flex; flex-direction: column; gap: 8px; width: 250px; }
+    .card-info { border: 1px solid #ddd; border-radius: 4px; padding: 8px 10px; background: #fafafa; }
+    .card-info strong { display: block; color: #555; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
+    .card-info div { font-size: 15px; color: #333; }
+    #divImagem { font-size: 40px; }
+    hr { margin: 25px 0 15px; border: none; border-top: 1px solid #ddd; }
+    .form { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .form input, .form select { height: auto; width: auto; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+    .form input[type=text] { width: 130px; }
+    .form input[type=number] { width: 90px; }
+    .acoes { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="tela">
+    <h2>🥬 Catálogo Hortifruti</h2>
+
+    <div class="container">
+      <select id="selectProdutos" size="4"></select>
+      <button id="btnDetalhes">Detalhes</button>
+      <div class="painel-direito">
+        <div class="card-info"><strong>Categoria</strong><div id="divCategoria">-</div></div>
+        <div class="card-info"><strong>Preço</strong><div id="divPreco">-</div></div>
+        <div class="card-info"><strong>Estoque</strong><div id="divEstoque">-</div></div>
+        <div class="card-info"><strong>Imagem</strong><div id="divImagem">-</div></div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="form">
+      <input type="text" id="nome" placeholder="Nome">
+      <select id="categoria">
+        <option>Fruta</option><option>Legume</option><option>Verdura</option>
+      </select>
+      <input type="number" id="preco" placeholder="Preço/kg" step="0.01" min="0">
+      <input type="number" id="estoque" placeholder="Estoque (kg)" min="0">
+      <input type="text" id="emoji" placeholder="Emoji" maxlength="2" style="width:70px">
+      <button id="btnAdicionar">Adicionar</button>
+    </div>
+
+    <div class="acoes">
+      <button class="sec" id="btnExportar">Exportar JSON</button>
+      <button class="sec" id="btnImportar">Importar JSON</button>
+      <button class="sec" id="btnRestaurar">Restaurar padrão</button>
+      <input type="file" id="arquivo" accept=".json" hidden>
+    </div>
+  </div>
+
+  <script>
+    // Classe: molde para cada produto
+    class Produto {
+      constructor(nome, categoria, preco, estoque, emoji) {
+        this.nome = nome;
+        this.categoria = categoria;
+        this.preco = preco;
+        this.estoque = estoque;
+        this.emoji = emoji;
+      }
+    }
+
+    // Dados iniciais (usados se o localStorage estiver vazio)
+    function listaPadrao() {
+      return [
+        new Produto("Banana",  "Fruta",   6.90, 40, "🍌"),
+        new Produto("Maçã",    "Fruta",   9.50, 30, "🍎"),
+        new Produto("Tomate",  "Legume",  7.80, 25, "🍅"),
+        new Produto("Cenoura", "Legume",  5.40, 35, "🥕"),
+        new Produto("Alface",  "Verdura", 3.50, 20, "🥬")
+      ];
+    }
+
+    let listaProdutos = [];
+    const CHAVE = "hortifruti";
+
+    // Elementos da DOM
+    const sel = document.getElementById("selectProdutos");
+    const divCategoria = document.getElementById("divCategoria");
+    const divPreco = document.getElementById("divPreco");
+    const divEstoque = document.getElementById("divEstoque");
+    const divImagem = document.getElementById("divImagem");
+
+    // LEITURA: JSON.parse a partir do localStorage
+    function carregarDadosJSON() {
+      const texto = localStorage.getItem(CHAVE);
+      listaProdutos = texto ? JSON.parse(texto) : listaPadrao();
+    }
+
+    // ESCRITA: JSON.stringify para o localStorage
+    function escreverDadosJSON() {
+      localStorage.setItem(CHAVE, JSON.stringify(listaProdutos));
+    }
+
+    // Preenche a listbox com os nomes (value = índice no array)
+    function atualizarSelect() {
+      sel.innerHTML = "";
+      for (let i = 0; i < listaProdutos.length; i++) {
+        sel.innerHTML += `<option value="${i}">${listaProdutos[i].nome}</option>`;
+      }
+      if (listaProdutos.length > 0) sel.selectedIndex = 0;
+    }
+
+    // Botão Detalhes
+    document.getElementById("btnDetalhes").addEventListener("click", function () {
+      if (sel.value === "") return;
+      const p = listaProdutos[sel.value];
+      divCategoria.textContent = p.categoria;
+      divPreco.textContent = `R$ ${Number(p.preco).toFixed(2)} / kg`;
+      divEstoque.textContent = `${p.estoque} kg`;
+      divImagem.textContent = p.emoji;
+    });
+
+    // Botão Adicionar
+    document.getElementById("btnAdicionar").addEventListener("click", function () {
+      const nome = document.getElementById("nome").value.trim();
+      const categoria = document.getElementById("categoria").value;
+      const preco = Number(document.getElementById("preco").value);
+      const estoque = Number(document.getElementById("estoque").value);
+      const emoji = document.getElementById("emoji").value.trim() || "🛒";
+
+      if (nome === "" || preco <= 0) {
+        alert("Informe o nome e um preço válido.");
+        return;
+      }
+
+      listaProdutos.push(new Produto(nome, categoria, preco, estoque, emoji));
+      escreverDadosJSON();
+      atualizarSelect();
+      sel.selectedIndex = listaProdutos.length - 1;
+
+      for (const id of ["nome", "preco", "estoque", "emoji"]) {
+        document.getElementById(id).value = "";
+      }
+    });
+
+    // Exportar: gera e baixa produtos.json via Blob
+    document.getElementById("btnExportar").addEventListener("click", function () {
+      const blob = new Blob([JSON.stringify(listaProdutos, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "produtos.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Importar: lê um .json do computador com FileReader
+    const inputArquivo = document.getElementById("arquivo");
+    document.getElementById("btnImportar").addEventListener("click", () => inputArquivo.click());
+    inputArquivo.addEventListener("change", function () {
+      const arq = inputArquivo.files[0];
+      if (!arq) return;
+      const leitor = new FileReader();
+      leitor.onload = function () {
+        try {
+          const dados = JSON.parse(leitor.result);
+          if (!Array.isArray(dados)) throw new Error();
+          listaProdutos = dados;
+          escreverDadosJSON();
+          atualizarSelect();
+        } catch (e) {
+          alert("Arquivo JSON inválido.");
+        }
+      };
+      leitor.readAsText(arq);
+      inputArquivo.value = "";
+    });
+
+    // Restaurar padrão
+    document.getElementById("btnRestaurar").addEventListener("click", function () {
+      listaProdutos = listaPadrao();
+      escreverDadosJSON();
+      atualizarSelect();
+    });
+
+    // Início
+    carregarDadosJSON();
+    atualizarSelect();
+  </script>
+</body>
+</html>
