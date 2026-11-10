@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+
+    .container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 10px;
+      font-size: 18px;
+      text-align: center;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    input[type="number"]:focus {
+      border-color: #007bff;
+    }
+
+    .simbolo {
+      font-size: 32px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .botoes {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    button {
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      background-color: #007bff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+
+<script>
+
+  function soma() {
+    const valor1 = parseFloat(num1.value);
+    const valor2 = parseFloat(num2.value);
+
+    const resultado = valor1 + valor2;
+
+    res.value = resultado;
+  }
+
+  function subtracao() {
+    const valor1 = parseFloat(num1.value);
+    const valor2 = parseFloat(num2.value);
+
+    const resultado = valor1 - valor2;
+
+    res.value = resultado;
+  }
+
+  function multiplicacao() {
+    const valor1 = parseFloat(num1.value);
+    const valor2 = parseFloat(num2.value);
+
+    const resultado = valor1 * valor2;
+
+    res.value = resultado;
+  }
+
+  function divisao() {
+    const valor1 = parseFloat(num1.value);
+    const valor2 = parseFloat(num2.value);
+
+    const resultado = valor1 / valor2;
+
+    res.value = resultado;
+  }
+
+  function porcentagem() {
+    const valor1 = parseFloat(num1.value);
+    const valor2 = parseFloat(num2.value);
+
+    const resultado = (valor1 * valor2) / 100;
+
+    res.value = resultado;
+  }
+
+</script>
+
+<div class="container">
+
+  <input type="number" value="20" id="num1">
+
+  <div class="botoes">
+    <button onclick="soma()">+</button>
+    <button onclick="subtracao()">-</button>
+    <button onclick="multiplicacao()">*</button>
+    <button onclick="divisao()">/</button>
+    <button onclick="porcentagem()">%</button>
+  </div>
+
+  <input type="number" value="5" id="num2">
+
+  <span class="simbolo">=</span>
+
+  <input type="number" id="res">
+
+</div>
+
+</body>
+</html>
