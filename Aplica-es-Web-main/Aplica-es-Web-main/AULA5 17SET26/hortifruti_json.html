@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Hortifruti</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f1f6ee; margin: 0; }
+
+        .container { display: flex; flex-direction: row; align-items: center; gap: 20px; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+        .painel-esquerdo select { width: 150px; height: 230px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+
+        .painel-meio { display: flex; flex-direction: column; gap: 10px; }
+        .painel-meio button { padding: 12px 20px; font-size: 15px; font-weight: bold; color: #fff; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
+        #btnDetalhes { background-color: #2e7d32; }
+        #btnDetalhes:hover { background-color: #1b5e20; }
+        #btnAbrirModal { background-color: #f57c00; }
+        #btnAbrirModal:hover { background-color: #e65100; }
+        #btnBaixarJson, #btnCarregarJson { background-color: #607d8b; }
+        #btnBaixarJson:hover, #btnCarregarJson:hover { background-color: #455a64; }
+
+        .painel-direito { display: flex; flex-direction: column; gap: 10px; width: 250px; }
+        .card-info { border: 1px solid #ddd; border-radius: 4px; padding: 10px; background-color: #fafafa; }
+        .card-info strong { display: block; color: #555; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; }
+        .card-info div { font-size: 15px; color: #333; }
+        #divImagem { font-size: 40px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fff; padding: 25px; border-radius: 8px; width: 320px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+        .modal-content h3 { margin-top: 0; margin-bottom: 15px; color: #333; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: #666; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .modal-acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+        .modal-acoes button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-salvar { background-color: #28a745; color: white; }
+        .btn-cancelar { background-color: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Esquerda: Listbox -->
+        <div class="painel-esquerdo">
+            <select id="selectProdutos" size="5"></select>
+        </div>
+
+        <!-- Meio: Botões -->
+        <div class="painel-meio">
+            <button id="btnDetalhes">Detalhes</button>
+            <button id="btnAbrirModal">Novo Produto</button>
+            <button id="btnBaixarJson">Exportar JSON</button>
+            <button id="btnCarregarJson">Importar JSON</button>
+            <input type="file" id="fileInputJson" accept=".json" style="display: none;">
+        </div>
+
+        <!-- Direita: Quadros de informações -->
+        <div class="painel-direito">
+            <div class="card-info"><strong>Categoria</strong><div id="divCategoria">-</div></div>
+            <div class="card-info"><strong>Preço</strong><div id="divPreco">-</div></div>
+            <div class="card-info"><strong>Estoque</strong><div id="divEstoque">-</div></div>
+            <div class="card-info"><strong>Imagem</strong><div id="divImagem">-</div></div>
+        </div>
+    </div>
+
+    <!-- Modal de cadastro -->
+    <div class="modal-overlay" id="modalForm">
+        <div class="modal-content">
+            <h3>Cadastrar Novo Produto</h3>
+            <div class="form-group">
+                <label for="inputNome">Nome do Produto:</label>
+                <input type="text" id="inputNome" placeholder="Ex: Laranja">
+            </div>
+            <div class="form-group">
+                <label for="inputCategoria">Categoria:</label>
+                <select id="inputCategoria">
+                    <option>Fruta</option>
+                    <option>Legume</option>
+                    <option>Verdura</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inputPreco">Preço por kg (R$):</label>
+                <input type="number" id="inputPreco" placeholder="Ex: 4.50" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+                <label for="inputEstoque">Estoque (kg):</label>
+                <input type="number" id="inputEstoque" placeholder="Ex: 30" min="0">
+            </div>
+            <div class="form-group">
+                <label for="inputEmoji">Emoji (imagem):</label>
+                <input type="text" id="inputEmoji" placeholder="Ex: 🍊" maxlength="2">
+            </div>
+            <div class="modal-acoes">
+                <button type="button" class="btn-cancelar" id="btnCancelar">Cancelar</button>
+                <button type="button" class="btn-salvar" id="btnSalvar">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Produto {
+            constructor(nome, categoria, preco, estoque, emoji) {
+                this.nome = nome;
+                this.categoria = categoria;
+                this.preco = preco;
+                this.estoque = estoque;
+                this.emoji = emoji;
+            }
+        }
+
+        // Array de objetos: começa vazio e é preenchido a partir do JSON
+        let listaProdutos = [];
+
+        // Transforma os objetos simples lidos do JSON em instâncias de Produto
+        function converterParaProdutos(lista) {
+            return lista.map(obj => new Produto(obj.nome, obj.categoria, obj.preco, obj.estoque, obj.emoji));
+        }
+
+        // Mapeamento dos elementos da DOM
+        const selectProdutos  = document.getElementById("selectProdutos");
+        const btnDetalhes     = document.getElementById("btnDetalhes");
+        const btnAbrirModal   = document.getElementById("btnAbrirModal");
+        const btnCancelar     = document.getElementById("btnCancelar");
+        const btnSalvar       = document.getElementById("btnSalvar");
+        const btnBaixarJson   = document.getElementById("btnBaixarJson");
+        const btnCarregarJson = document.getElementById("btnCarregarJson");
+        const fileInputJson   = document.getElementById("fileInputJson");
+        const modalForm       = document.getElementById("modalForm");
+
+        const divCategoria = document.getElementById("divCategoria");
+        const divPreco     = document.getElementById("divPreco");
+        const divEstoque   = document.getElementById("divEstoque");
+        const divImagem    = document.getElementById("divImagem");
+
+        // --- LEITURA: localStorage primeiro; se vazio, lê o arquivo produtos.json ---
+        async function carregarDadosJSON() {
+            const dadosSalvos = localStorage.getItem("produtos_json");
+
+            if (dadosSalvos) {
+                listaProdutos = converterParaProdutos(JSON.parse(dadosSalvos));
+                atualizarListbox();
+            } else {
+                try {
+                    const resposta = await fetch("produtos.json");
+                    if (!resposta.ok) throw new Error("Erro ao carregar produtos.json");
+
+                    listaProdutos = converterParaProdutos(await resposta.json());
+                    atualizarListbox();
+                    escreverDadosJSON();
+                } catch (e) {
+                    console.error("Falha ao ler dados iniciais do arquivo JSON:", e);
+                    alert("Não foi possível carregar 'produtos.json'. Rode em um servidor local (ex: Live Server) ou use o botão Importar JSON.");
+                }
+            }
+        }
+
+        // --- ESCRITA: JSON.stringify para o localStorage ---
+        function escreverDadosJSON() {
+            localStorage.setItem("produtos_json", JSON.stringify(listaProdutos, null, 2));
+        }
+
+        function atualizarListbox() {
+            selectProdutos.innerHTML = "";
+            listaProdutos.forEach((produto, index) => {
+                const opcao = document.createElement("option");
+                opcao.value = index;
+                opcao.textContent = produto.nome;
+                if (index === 0) opcao.selected = true;
+                selectProdutos.appendChild(opcao);
+            });
+        }
+
+        // --- EVENTOS ---
+        btnDetalhes.addEventListener("click", function() {
+            const index = selectProdutos.value;
+            if (index !== "" && listaProdutos[index]) {
+                const produto = listaProdutos[index];
+                divCategoria.textContent = produto.categoria;
+                divPreco.textContent = `R$ ${Number(produto.preco).toFixed(2)} / kg`;
+                divEstoque.textContent = `${produto.estoque} kg`;
+                divImagem.textContent = produto.emoji;
+            }
+        });
+
+        btnAbrirModal.addEventListener("click", () => modalForm.style.display = "flex");
+        btnCancelar.addEventListener("click", () => {
+            modalForm.style.display = "none";
+            limparFormulario();
+        });
+
+        btnSalvar.addEventListener("click", function() {
+            const nome = document.getElementById("inputNome").value.trim();
+            const categoria = document.getElementById("inputCategoria").value;
+            const preco = Number(document.getElementById("inputPreco").value);
+            const estoque = Number(document.getElementById("inputEstoque").value);
+            const emoji = document.getElementById("inputEmoji").value.trim() || "🛒";
+
+            if (nome === "" || preco <= 0 || estoque < 0) {
+                alert("Informe o nome, um preço maior que zero e um estoque válido!");
+                return;
+            }
+
+            listaProdutos.push(new Produto(nome, categoria, preco, estoque, emoji));
+
+            escreverDadosJSON();
+            atualizarListbox();
+            selectProdutos.value = listaProdutos.length - 1;
+
+            modalForm.style.display = "none";
+            limparFormulario();
+        });
+
+        // Exportar: salva produtos.json (File System Access API, ou download como alternativa)
+        btnBaixarJson.addEventListener("click", async function() {
+            const jsonString = JSON.stringify(listaProdutos, null, 2);
+
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: 'produtos.json',
+                        types: [{ description: 'Arquivo JSON', accept: { 'application/json': ['.json'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(jsonString);
+                    await writable.close();
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error(err);
+                }
+            } else {
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "produtos.json";
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        // Importar: lê um arquivo .json escolhido pelo usuário com FileReader
+        btnCarregarJson.addEventListener("click", () => fileInputJson.click());
+
+        fileInputJson.addEventListener("change", function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evento) {
+                try {
+                    listaProdutos = converterParaProdutos(JSON.parse(evento.target.result));
+                    escreverDadosJSON();
+                    atualizarListbox();
+                } catch (err) {
+                    alert("Erro ao ler a estrutura do arquivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+            fileInputJson.value = "";
+        });
+
+        function limparFormulario() {
+            document.getElementById("inputNome").value = "";
+            document.getElementById("inputCategoria").selectedIndex = 0;
+            document.getElementById("inputPreco").value = "";
+            document.getElementById("inputEstoque").value = "";
+            document.getElementById("inputEmoji").value = "";
+        }
+
+        // Leitura inicial
+        carregarDadosJSON();
+    </script>
+
+</body>
+</html>
